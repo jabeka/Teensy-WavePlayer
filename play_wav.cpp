@@ -1087,9 +1087,9 @@ size_t AudioPlayWav::dataReader(int8_t *buffer, int len)
 
   int rd;
 
+  size_t pos = wavfile.position();
 	if (_loopCount > 0)
 	{
-		size_t pos = wavfile.position();
 		if (pos + len > loopLast)
 		{
 			_loopCount--;
@@ -1112,8 +1112,17 @@ size_t AudioPlayWav::dataReader(int8_t *buffer, int len)
 			return rd;
 		}
 	}
-
-	rd = wavfile.readInISR(buffer, len);
+  
+  auto newLen = len;
+  if (pos + len > lastSample) // skip metadatas 
+  {
+    newLen = lastSample - pos;
+    if (newLen <= 0) {
+      last = true;
+      return 0;
+    }
+  }
+	rd = wavfile.readInISR(buffer, newLen);
 
   // here would be right place to add playing backwards, up-/downsampling etc ....
 
@@ -1260,6 +1269,8 @@ void AudioPlayWav::update(void)
 
   // copy the samples to the audio blocks:
   buffer_rd += decoder(&buffer[buffer_rd], queue, channels);
+
+  // TODO fade in out and don't read metadata
 
   // transmit them:
 	chan = 0;
