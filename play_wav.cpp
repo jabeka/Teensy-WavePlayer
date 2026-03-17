@@ -1114,7 +1114,7 @@ size_t AudioPlayWav::dataReader(int8_t *buffer, int len)
 	}
   
   auto newLen = len;
-  if (pos + len > lastSample) // skip metadatas 
+  if (pos + len > lastSample) // skip metadata 
   {
     newLen = lastSample - pos;
     if (newLen <= 0) {
@@ -1238,6 +1238,8 @@ void AudioPlayWav::update(void)
   if (++updateStep >= _instances) updateStep = 0;
   if (state != STATE_RUNNING) return;
 
+  size_t position = this->position();
+
   if (buffer_rd >= sz_mem)
   {
 		buffer_rd = 0;
@@ -1270,7 +1272,26 @@ void AudioPlayWav::update(void)
   // copy the samples to the audio blocks:
   buffer_rd += decoder(&buffer[buffer_rd], queue, channels);
 
-  // TODO fade in out and don't read metadata
+  size_t lengthRead = this->position() - position;
+  size_t totalLength = total_length  / (bytes * channels);
+  
+  for (size_t i = 0; i < lengthRead; i++)
+  {
+    // fade in or out for fadeXSps samples at the beginning and end of the file
+    if (position + i < fadeInSps) {
+      float gain = (float)(position + i) / fadeInSps;
+      for (chan = 0; chan < channels; chan++)
+      {
+        queue[chan]->data[i] = (int16_t)(queue[chan]->data[i] * gain);
+      }
+    } else if (position + i > totalLength - fadeOutSps) {
+      float gain = (float)(totalLength - position - i) / fadeOutSps;
+      for (chan = 0; chan < channels; chan++)
+      {
+        queue[chan]->data[i] = (int16_t)(queue[chan]->data[i] * gain);
+      }
+    }
+  }
 
   // transmit them:
 	chan = 0;

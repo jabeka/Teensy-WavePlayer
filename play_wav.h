@@ -109,6 +109,9 @@ class AudioBaseWav
     uint32_t numChannels(void) {return channels;}
     uint32_t sampleRate(void) {return sample_rate;}
     uint8_t lastErr(void) {return (int)last_err;}
+    
+    void fade(size_t fadeInSps, size_t fadeOutSps) {this->fadeInSps = fadeInSps; this->fadeOutSps = fadeOutSps;}
+    void fade (size_t fadeSps) {fade(fadeSps, fadeSps);}
 
   private:
     friend class AudioPlayWav;
@@ -140,7 +143,8 @@ class AudioBaseWav
     uint8_t bytes;            		// 1 or 2 bytes?
 		uint8_t channels;        			// #of channels in the wave file
     int8_t updateStep = -1;
-
+    size_t fadeInSps = 0;
+    size_t fadeOutSps = 0;
 };
 
 /*********************************************************************************************************/
